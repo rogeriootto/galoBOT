@@ -1,5 +1,5 @@
 ## PRECISA pip install -U discord.py[voice]
-## https://www.youtube.com/watch?v=ml-5tXRmmFk
+## https://www.youtube.com/watch?v=TFdO7oqkMzI
 ## pip install youtube_dl
 ## git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
 

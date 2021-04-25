@@ -142,10 +142,171 @@ async def gVUKVUK(ctx):
 ## //--------------------------------------------------------------------------------------------//
 
 
-## //----------------------------- FUNÇÕES PARA O SISTEMA DO BANCO ------------------------------//
+## //----------------------------- JOGO DA VELHA VAMO TESTAR ------------------------------//
 
+player1 = ""
+player2 = ""
+turn = ""
+gameOver = True
 
+board = []
 
+winningConditions = [
+    [0, 1, 2], #Linha horizontal
+    [3, 4, 5], #Linha horizontal
+    [6, 7, 8], #Linha horizontal
+    [0, 3, 6], #Linha vertical
+    [1, 4, 7], #Linha vertical
+    [2, 5, 8], #Linha vertical
+    [0, 4, 8], #Diagonal
+    [2, 4, 6]  #Diagonal
+]
+
+@client.command(pass_context=True)
+async def gVelha(ctx, p2 : discord.Member):
+    
+    global gameOver
+
+    if gameOver:
+        global board
+        global player1
+        global player2
+        global turn
+        global count
+
+        board =[":white_large_square:", ":white_large_square:", ":white_large_square:",
+                ":white_large_square:", ":white_large_square:", ":white_large_square:",
+                ":white_large_square:", ":white_large_square:", ":white_large_square:",]
+
+        turn = ""
+        gameOver = False
+        count = 0
+
+        player1 = ctx.author
+        player2 = p2
+
+        # Printa o tabuleiro
+        line = ""
+        for x in range(len(board)):
+            if x == 2 or x == 5 or x==8:
+                line += "" + board[x]
+                await ctx.send(line)
+                line = ""
+            else:
+                line+= "" + board[x]
+
+        # DETERMINA OS TURNOS
+        num = random.randint(1,2)
+        if num == 1:
+            turn = player1
+            await ctx.send("Vez de: <@"+ str(player1.id) + "> :regional_indicator_x:")
+        elif num == 2:
+            turn = player2
+            await ctx.send("Vez de: <@"+ str(player2.id) + "> :o2:")
+    else:
+        await ctx.send("Ja tem gente jogando, pera ae")
+
+@client.command(pass_contex=True)
+async def colocar(ctx, pos : int):
+    global turn
+    global player1
+    global player2
+    global board
+    global count
+    global gameOver
+    
+    if not gameOver:
+        if ctx.author == player1 or ctx.author == player2:
+            mark = ""
+            if turn == ctx.author:
+                if turn == player1:
+                    mark = ":regional_indicator_x:"
+
+                elif turn == player2:
+                    mark = ":o2:"
+                
+                if 0 < pos < 10 and board[pos-1] == ":white_large_square:":
+                    board[pos-1] = mark
+                    count += 1
+
+                    # printa o tabuleiro dnv
+                    line = ""
+                    for x in range(len(board)):
+                        if x == 2 or x == 5 or x==8:
+                            line += "" + board[x]
+                            await ctx.send(line)
+                            line = ""
+                        else:
+                            line+= "" + board[x]
+
+                    checkWinner(winningConditions, mark)
+                    if gameOver:
+                        await ctx.send(mark +" ganhou!")
+                    elif count >= 9:
+                        await ctx.send("Empate!")
+                        gameOver = True
+
+                    #Switch turns
+                    if not gameOver:
+                        if turn == player1:
+                            await ctx.send("Vez de :<@"+ str(player2.id) + "> :o2:")
+                            turn = player2
+                        elif turn == player2:
+                            await ctx.send("Vez de: <@"+ str(player1.id) + "> :regional_indicator_x:")
+                            turn = player1
+                else:
+                    await ctx.send("Ta colocando em um lugar errado irmão")
+            else:
+                await ctx.send("NÃO É TUA VEZ MAL EDUCADO")
+        else:
+            await ctx.send("Cara tu não tá nem jogando, sai daqui")
+    else:
+        await ctx.send("Começa um jogo aí po, não sou adivinha (-gVelha)")
+
+@client.command(pass_context=True)
+async def gVelhaStop(ctx):
+    global gameOver
+    global player1
+    global player2
+
+    if ctx.author == player1 or ctx.author == player2:
+        gameOver = True
+        await ctx.send("Jogo entre <@"+ str(player1.id) +"> e <@" + str(player2.id) + "> foi interrompido!")
+    else:
+        await ctx.send("Você nem ta jogando, sai daqui")
+
+def checkWinner(winningConditions, mark):
+    global gameOver
+    global count
+
+    for condition in winningConditions:
+        if  mark == board[condition[0]] and mark == board[condition[1]] and mark == board[condition[2]]:
+            gameOver = True
+
+@client.command(pass_context=True)
+async def gVelhaHelp(ctx):
+
+    embed = discord.Embed(color=discord.Colour.red())
+    file = discord.File("img/VelhaHelp.png", filename=("VelhaHelp.png"))
+    embed.add_field(name="VelhaHelp\n",
+                    value="Para começar o jogo, digite: **-gVelha @Pessoa**\n\nPara interromper o jogo, use: **-gVelhaStop**\n\nCada pessoa tem seu turno;\nPara realizar sua jogada você precisa usar o comando, **-colocar**\nPara escolher o lugar, você digita o numero do quadrado que vai ser inserido;\n**Exemplo: -colocar 5**",
+                    inline=True)
+    embed.set_image(url="attachment://VelhaHelp.png")
+    await ctx.send(embed = embed, file=file)
+
+@gVelha.error
+async def velhaErro(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Ta escolhendo errado, tem que escolher duas pessoas")
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send("Ta fazendo muito errado, vc tem que pingar com quem vc quer jogar (ex: -gVelha @nome1 @nome2)")
+
+@colocar.error
+async def place_error (ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Coloca um valor valido pra posição aí (1-9) (ex: -place 3)")
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send("Vc não tá colocando um numero, bota um numero ae de 1 a 9 plmds")
 
 ## //--------------------------------------------------------------------------------------------//
 
